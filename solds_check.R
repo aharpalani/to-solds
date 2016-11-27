@@ -1,14 +1,6 @@
 library(rvest)
 library(lubridate)
 
-pull_url <- function(link, new_file){
-  lines <- readLines("scrape_base.js")
-  lines[1] <- paste0("var url = '",link,"'")
-  lines[2] <- paste0("var path = '",new_file,"'")
-  writeLines(lines, "scrape_curr.js")
-  system("phantomjs scrape_curr.js")
-}
-
 pull_house <- function(link, new_file){
   lines <- readLines("scrape_base_detail.js")
   lines[1] <- paste0("var url = '",link,"'")
@@ -27,26 +19,31 @@ ind_links <- function(data){
 mth <- as.Date("2016-09-01")
 num_days <- as.numeric(days_in_month(mth))
 
-for (y in 1:num_days) {
-  x <- as.Date(paste0("2016-09-",y))
-  url <- paste0("http://www.mongohouse.com/reports/",
-  month(x),"%252F",day(x),"%252F",year(x),"/Toronto")
-  filename <- paste0("main_",year(x),sprintf("%02d",month(x)),sprintf("%02d",day(x)),".html")
-  
-  data <- pull_url(url,filename)
-}
-
-
-for (y in 20:num_days) {
+repull <- data.frame(filename = character(),
+                     url = character(),
+                     stringsAsFactors = F
+                    )
+i <- 0
+for (y in 1:19) {
   x <- mth %m+% days(y-1)
   filename <- paste0("main_",year(x),sprintf("%02d",month(x)),sprintf("%02d",day(x)),".html")
   data <- read_html(paste0("html/",format(x,"%Y-%m"),"/",filename))
   links <- ind_links(data)
   
   for (z in 1:length(links)) {
-    url <- paste0("http://www.mongohouse.com",links[z])
     filename <- paste0("lst_",year(x),sprintf("%02d",month(x)),sprintf("%02d",day(x)),"_",sprintf("%03d",z),".html")
-    pull_house(url,filename)
+    data <- read_html(paste0("html/",format(x,"%Y-%m"),"/detail/",filename))
+    url <- paste0("http://www.mongohouse.com",links[z])
+    
+    check <- try((data %>% html_nodes("h3"))[2],silent=T)
+    if (is(check,"try-error")){
+      i <- i + 1
+      repull[i,"filename"] <- filename
+      repull[i,"url"] <- url
+    }
   }
 }
 
+for (y in 1:nrow(repull)){
+  pull_house(repull[y,"url"],repull[y,"filename"])
+}
