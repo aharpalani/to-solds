@@ -5,14 +5,17 @@ library(stringr)
 curr_dir <- "html/2016-09/detail/"
 
 lst_main <- data.frame( main_id = integer(),
-                        listing_id=character(), 
+                        listing_id=character(),
+                        type_tags = character(),
                         address=character(),
                         contract_date=as.Date(character()), 
                         sold_price=integer(), 
                         list_price=integer(),
                         area=character(),
+                        age=character(),
                         maint_fees=character(),
                         basement=character(),
+                        fronting_on=character(),
                         exposure=character(),
                         kitchens=character(),
                         garage=character(),
@@ -32,6 +35,7 @@ lst_rooms <- data.frame( room = character(),
 parse_main <- function(filename, lst_main, curr_dir, i, data){
   
   lst_main[i,"address"] <- as.character((data %>% html_nodes("h3") %>% html_text())[1])
+  lst_main[i,"type_tags"] <- as.character((data %>% html_nodes("h5") %>% html_text())[1])
   
   price_text <- (data %>% html_nodes("h4") %>% html_text())[1]
   price_text <- gsub("[^[:digit:].[:blank:]]","",price_text)
@@ -42,8 +46,10 @@ parse_main <- function(filename, lst_main, curr_dir, i, data){
   lst_main[i,"listing_id"] <- as.character(details[details$X1 == "Listing ID:",][2])
   lst_main[i,"contract_date"] <- as.Date(as.character(details[details$X1 == "Contract Date:",][2]),"%m/%d/%Y")
   lst_main[i,"area"] <- as.character(details[details$X1 == "Approximate Footage:",][2])
+  lst_main[i,"age"] <- as.character(details[details$X1 == "Approximate Age:",][2])
   lst_main[i,"maint_fees"] <- as.character(details[details$X1 == "Maintenance Fees:",][2])
   lst_main[i,"basement"] <- as.character(details[details$X1 == "Basement:",][2])
+  lst_main[i,"fronting_on"] <- as.character(details[details$X1 == "Fronting On:",][2])
   lst_main[i,"exposure"] <- as.character(details[details$X1 == "Exposure:",][2])
   lst_main[i,"kitchens"] <- as.character(details[details$X1 == "Kitchens:",][2])
   lst_main[i,"garage"] <- as.character(details[details$X1 == "Garage:",][2])
@@ -79,3 +85,6 @@ for (j in filenames){
   lst_main <- parse_main(j, lst_main, curr_dir, i, data)
   lst_rooms <- parse_rooms(j, lst_rooms, curr_dir, i, data)
 }
+
+write.table(lst_main,"main.csv",sep=";")
+write.table(lst_rooms,"rooms.csv",sep=";")
